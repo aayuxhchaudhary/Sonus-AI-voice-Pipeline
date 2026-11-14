@@ -1,0 +1,42 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "sonus"
+version = "0.1.0"
+description = "High-performance, CPU-optimized conversational voice AI pipeline with zero-GPU requirements."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [
+    { name = "Aayush", email = "developer@local" }
+]
+keywords = ["voice-ai", "speech-to-text", "text-to-speech", "vad", "kokoro", "whisper", "ollama"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Topic :: Multimedia :: Sound/Audio :: Speech",
+]
+dependencies = [
+    "numpy>=1.26.0",
+    "sounddevice>=0.5.0",
+    "soundfile>=0.12.0",
+    "onnxruntime>=1.18.0",
+    "faster-whisper>=1.0.0",
+    "kokoro-onnx>=0.6.0",
+    "httpx>=0.27.0",
+    "pydantic>=2.7.0",
+    "rich>=13.7.0",
+]
+
+[project.scripts]
+sonus = "sonus.cli:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/sonus"]

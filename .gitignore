@@ -1,0 +1,44 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+.venv/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Cache & Local Files
+.pytest_cache/
+.coverage
+htmlcov/
+*.log
+.env
+.env.local
+
+# Model binary weights (large assets)
+models/vad/*.onnx
+models/kokoro/*.onnx
+models/kokoro/*.json
+models/kokoro/*.bin
+whisper_models/
+
+# Audio scratch
+*.wav
+*.mp3
+recordings/
