@@ -1,5 +1,8 @@
 """
-Silero VAD v5 ONNX implementation with state management and silence thresholding.
+Silero VAD v5 ONNX execution engine with stateful recurrent memory.
+
+Maintains recurrent hidden states and a trailing acoustic context buffer across
+contiguous audio frames to satisfy Silero v5's temporal receptive field requirement.
 """
 
 from pathlib import Path
@@ -11,7 +14,16 @@ from sonus.config import VADConfig
 
 
 class SileroVAD:
-    """Stateful ONNX runtime wrapper for Silero VAD v5."""
+    """
+    Stateful ONNX runtime wrapper for Silero Voice Activity Detection (v5).
+    
+    Architectural Invariant:
+        Silero VAD v5 expects an input tensor of shape [batch, context + frame_samples].
+        For 16kHz sampling, the model evaluates 512-sample (32ms) audio frames with a
+        mandatory 64-sample (4ms) trailing historical context prepended, yielding an
+        effective input shape of [1, 576]. Evaluating raw [1, 512] without context
+        collapses the convolutional feature maps, causing near-zero speech probability.
+    """
 
     def __init__(self, config: VADConfig, sample_rate: int = 16000):
         self.config = config
@@ -19,7 +31,7 @@ class SileroVAD:
 
         model_path = Path(config.model_path)
         if not model_path.exists():
-            raise FileNotFoundError(f"Silero VAD model not found at {model_path}")
+            raise FileNotFoundError(f"Silero VAD model graph missing at: {model_path}")
 
         opts = ort.SessionOptions()
         opts.inter_op_num_threads = 1
@@ -32,27 +44,47 @@ class SileroVAD:
             providers=["CPUExecutionProvider"]
         )
 
+        # Recurrent state tensor: shape [2, batch=1, hidden=128]
         self._state = np.zeros((2, 1, 128), dtype=np.float32)
         self._sr_tensor = np.array(sample_rate, dtype=np.int64)
+        self._context_size = 64 if sample_rate == 16000 else 32
+        self._context = np.zeros(self._context_size, dtype=np.float32)
 
     def reset_states(self) -> None:
-        """Reset internal recurrent state."""
+        """
+        Zero recurrent cell hidden states and historical context buffer.
+        Must be invoked between completed conversational speech turns.
+        """
         self._state = np.zeros((2, 1, 128), dtype=np.float32)
+        self._context = np.zeros(self._context_size, dtype=np.float32)
 
     def is_speech(self, audio_frame: np.ndarray) -> Tuple[bool, float]:
         """
-        Evaluate single audio chunk.
+        Evaluate acoustic speech probability for a discrete audio frame.
         
         Args:
-            audio_frame: 1D NumPy array of float32 samples (512 samples for 16kHz).
+            audio_frame: Monophonic float32 audio chunk (512 samples at 16kHz).
             
         Returns:
-            Tuple[bool, float]: (is_speech_flag, confidence_score)
+            Tuple[bool, float]: (is_speech_decision, posterior_confidence_score).
         """
-        if audio_frame.ndim == 1:
-            audio_input = np.expand_dims(audio_frame, axis=0).astype(np.float32)
+        frame = np.asarray(audio_frame, dtype=np.float32).ravel()
+        expected_frame_size = 512 if self.sample_rate == 16000 else 256
+
+        if len(frame) == expected_frame_size + self._context_size:
+            input_data = frame
+            self._context = frame[-self._context_size:].copy()
         else:
-            audio_input = audio_frame.astype(np.float32)
+            if len(frame) < expected_frame_size:
+                frame = np.pad(frame, (0, expected_frame_size - len(frame)))
+            elif len(frame) > expected_frame_size:
+                frame = frame[:expected_frame_size]
+
+            # Prepend historical 64-sample context: [64] + [512] -> [576]
+            input_data = np.concatenate([self._context, frame], axis=0)
+            self._context = frame[-self._context_size:].copy()
+
+        audio_input = np.expand_dims(input_data, axis=0).astype(np.float32)
 
         ort_inputs = {
             "input": audio_input,
@@ -61,7 +93,7 @@ class SileroVAD:
         }
 
         ort_outputs = self._session.run(None, ort_inputs)
-        speech_prob = float(ort_outputs[0][0][0])
+        speech_prob = float(np.asarray(ort_outputs[0]).ravel()[0])
         self._state = ort_outputs[1]
 
         return (speech_prob >= self.config.threshold), speech_prob

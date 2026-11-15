@@ -1,15 +1,19 @@
-# Python
+# ==============================================================================
+# Sonus .gitignore
+# Production-grade ignore rules for Python, models, audio dumps, and OS caches
+# ==============================================================================
+
+# Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
 *$py.class
 *.so
 .Python
-env/
-venv/
-.venv/
+
+# C extensions & build distribution
 build/
-develop-eggs/
 dist/
+develop-eggs/
 downloads/
 eggs/
 .eggs/
@@ -23,22 +27,55 @@ wheels/
 .installed.cfg
 *.egg
 
-# Cache & Local Files
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+
+# Testing & Coverage
 .pytest_cache/
 .coverage
+.coverage.*
 htmlcov/
+.mypy_cache/
+.ruff_cache/
+
+# Local configuration & environment variables
 *.log
 .env
-.env.local
+.env.*
+!.env.example
 
-# Model binary weights (large assets)
+# Audio captures & forensic debug dumps (prevents committing utterances)
+debug_recordings/
+recordings/
+audio_dumps/
+*.wav
+*.mp3
+*.ogg
+*.flac
+*.pcm
+
+# Explicit exception: keep authentic acoustic test fixture for automated testing
+!tests/fixtures/*.wav
+
+# Model binary weights & offline caches (large binary assets)
 models/vad/*.onnx
 models/kokoro/*.onnx
 models/kokoro/*.json
 models/kokoro/*.bin
 whisper_models/
+huggingface_cache/
+.cache/
 
-# Audio scratch
-*.wav
-*.mp3
-recordings/
+# IDE, Editors & OS metadata
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+*.swo
+*~

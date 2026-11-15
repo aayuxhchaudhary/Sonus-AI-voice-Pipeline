@@ -6,6 +6,11 @@ __version__ = "0.1.0"
 __author__ = "Aayush"
 
 from sonus.config import SonusConfig
-from sonus.pipeline import VoicePipeline
+
+try:
+    from sonus.pipeline import VoicePipeline
+except (ImportError, OSError):
+    VoicePipeline = None  # type: ignore
 
 __all__ = ["SonusConfig", "VoicePipeline", "__version__"]
+
