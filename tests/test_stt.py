@@ -99,10 +99,8 @@ def test_whisper_transcriber_real_speech():
 def test_whisper_initial_prompt_and_hotwords():
     """Verify STTConfig and WhisperTranscriber configure initial_prompt and hotwords."""
     config = STTConfig()
-    assert "Aayush" in config.initial_prompt
     assert "JSON" in config.initial_prompt
     assert "Python" in config.initial_prompt
-    assert "Aayush" in config.hotwords
     assert "JSON" in config.hotwords
     assert config.condition_on_previous_text is False
     assert config.repetition_penalty == 1.2

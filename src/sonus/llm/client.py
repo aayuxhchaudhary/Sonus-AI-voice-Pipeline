@@ -119,32 +119,30 @@ class StreamingLLMClient:
 
     def get_system_prompt(self) -> str:
         """
-        Dynamically format system prompt with live clock, calendar, and user context.
+        Dynamically format system prompt with live clock, calendar, and optional user context.
         """
         from datetime import datetime
         now = datetime.now()
         date_str = now.strftime("%A, %B %d, %Y")
         time_str = now.strftime("%I:%M %p")
-        user_name = getattr(self.config, "user_name", "Aayush")
+        user_name = getattr(self.config, "user_name", None)
         base = self.config.system_prompt
 
-        if "{user_name}" in base or "{current_date}" in base or "{current_year}" in base:
-            try:
-                return base.format(
-                    user_name=user_name,
-                    current_date=date_str,
-                    current_time=time_str,
-                    current_year=now.year,
-                )
-            except Exception:
-                pass
+        prompt = base.replace("{current_date}", date_str)\
+                     .replace("{current_time}", time_str)\
+                     .replace("{current_year}", str(now.year))
 
-        return (
-            f"{base.strip()}\n"
-            f"Ground truth context: Today is {date_str}, current time is {time_str}, and current year is {now.year}. "
-            f"The user speaking with you is {user_name}. Address him as {user_name} when appropriate. "
-            f"If {user_name} corrects you on any topic, accept it immediately without arguing."
-        )
+        if user_name:
+            prompt = prompt.replace("{user_name}", user_name)
+            if user_name not in prompt:
+                prompt += (
+                    f"\nContext: You are speaking with {user_name}. "
+                    f"If asked about their identity or name, confirm their name is {user_name}."
+                )
+        else:
+            prompt = prompt.replace("{user_name}", "the user")
+
+        return prompt.strip()
 
     async def generate_sentences(
         self,

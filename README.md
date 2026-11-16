@@ -144,7 +144,7 @@ sequenceDiagram
 * **Inference Backend:** CTranslate2 engine utilizing INT8 quantization accelerated via Intel **AVX-512 VNNI** (Vector Neural Network Instructions).
 * **Default Model:** `base.en` (~74M parameters) for robust phonetic precision across regional accents, with selectable `tiny.en` (~39M) or `small.en` (~244M).
 * **Bounded Audio Normalization:** Audio arrays are scaled with a floor peak threshold ($\ge 0.03$) and bounded gain factor ($\le 4.0\times$) to clear Whisper's log-mel filterbank noise floor without clipping distortion.
-* **Lexical Beam Search Biasing:** Integrates `initial_prompt` (pre-seeding the autoregressive decoder prefix) and `hotwords` (rewarding matching prefix paths during beam search) to ensure proper nouns and technical acronyms (e.g., *JSON*, *Aayush*, *API*) decode accurately.
+* **Lexical Beam Search Biasing:** Integrates `initial_prompt` (pre-seeding the autoregressive decoder prefix) and `hotwords` (rewarding matching prefix paths during beam search) to ensure proper nouns and technical acronyms (e.g., *JSON*, *Python*, *API*) decode accurately.
 * **Anti-Hallucination Heuristic Filter:** Rejects hallucination loops during trailing dead air by evaluating:
   - Silence probability cutoff: $\text{no\_speech\_prob} \ge 0.60$
   - Repetition compression ratio: $\text{compression\_ratio} > 2.40$
@@ -232,7 +232,14 @@ uv sync
 uv pip install -e .
 ```
 
-### 3. Start Local Ollama Daemon
+### 3. Verify / Download Model Assets
+Sonus requires lightweight ONNX and voice embedding weights (~350 MB total). You can download them with the asset verification script (Sonus will also automatically prompt and download them if missing on first launch):
+
+```bash
+uv run python scripts/download_models.py
+```
+
+### 4. Start Local Ollama Daemon
 Ensure Ollama is running and has pulled your preferred model:
 
 ```bash
@@ -260,15 +267,18 @@ uv run sonus --test-mic
 Launch Sonus with live barge-in and real-time audio VU metering:
 
 ```bash
-# Standard startup with default configuration (Aayush profile, base.en Whisper, llama3.2:1b)
+# Standard startup with default configuration (base.en Whisper, llama3.2:1b)
 uv run sonus
+
+# Personalize with your name (biases Whisper and customizes LLM greetings)
+uv run sonus --user-name "Alex"
 
 # Start with forensic audio and telemetry logging enabled
 uv run sonus --debug-audio-dir ./debug_recordings
 
 # Customize user profile, STT model, LLM engine, and TTS voice
 uv run sonus \
-    --user-name "Aayush" \
+    --user-name "Alex" \
     --stt-model "base.en" \
     --llm-model "llama3.2:1b" \
     --tts-voice "af_heart" \
@@ -280,7 +290,7 @@ uv run sonus \
 | Option | Type | Default | Description |
 | :--- | :--- | :--- | :--- |
 | `--test-mic` | Flag | `False` | Executes a 3-second audio recording, calculates RMS/VAD scores, and runs Whisper diagnostic. |
-| `--user-name` | String | `Aayush` | User identity string injected into system prompts and Whisper lexical biasing. |
+| `--user-name` | String | `None` | User persona name for personalization and Whisper lexical biasing (optional, e.g. `--user-name Alex`). |
 | `--stt-model` | String | `base.en` | Whisper model variant (`base.en`, `tiny.en`, `small.en`, `base`). |
 | `--llm-model` | String | `llama3.2:1b` | Ollama model identifier (`llama3.2:1b`, `llama3.2:3b`, `qwen2.5:3b`). |
 | `--tts-voice` | String | `af_heart` | Kokoro voice embedding profile (`af_heart`, `af_bella`, `am_adam`, etc.). |

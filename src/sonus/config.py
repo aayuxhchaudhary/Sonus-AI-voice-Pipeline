@@ -73,11 +73,11 @@ class STTConfig(BaseModel):
     compute_type: str = Field(default="int8", description="Quantization type (int8 for CPU AVX-512 VNNI acceleration)")
     num_threads: int = Field(default=4, description="Inference CPU thread allocation")
     initial_prompt: Optional[str] = Field(
-        default="Sonus AI conversational voice assistant with Aayush. Topics: Aayush, programming, Python, JSON, APIs, code, software engineering.",
+        default="Sonus AI conversational voice assistant. Topics: programming, Python, JSON, APIs, code, software engineering.",
         description="Acoustic prompt conditioning the autoregressive vocabulary distribution"
     )
     hotwords: Optional[str] = Field(
-        default="Aayush Ayush JSON API Python code format",
+        default="JSON API Python code format",
         description="Lexical hotwords biasing beam search prefix scoring"
     )
     condition_on_previous_text: bool = Field(
@@ -113,15 +113,13 @@ class LLMConfig(BaseModel):
     base_url: str = Field(default="http://localhost:11434", description="Ollama HTTP API base endpoint")
     model: str = Field(default="llama3.2:1b", description="Model identifier (e.g. llama3.2:1b, llama3.2:3b, qwen2.5:3b)")
     temperature: float = Field(default=0.3, description="Sampling temperature (0.3 provides grounded factual precision)")
-    user_name: str = Field(default="Aayush", description="User persona identifier for conversational grounding")
+    user_name: Optional[str] = Field(default=None, description="User persona identifier for conversational grounding (None = neutral assistant)")
     system_prompt: str = Field(
         default=(
             "You are Sonus, a helpful, natural, and concise voice AI assistant.\n"
-            "You are speaking with your user, {user_name}.\n"
             "Real-world ground truth: Today is {current_date}, the time is {current_time}, and the year is {current_year}.\n"
-            "{user_name} is the user speaking to you right now. If he asks about his name or identity, confirm his name is {user_name}.\n"
-            "You are a software program running on his computer. You have no physical body, room, or surroundings; never describe fictional scenes or roleplay.\n"
-            "If {user_name} corrects you on any topic, accept the correction immediately and never argue.\n"
+            "You are a software program running locally on the user's computer. You have no physical body, room, or surroundings; never describe fictional scenes or roleplay.\n"
+            "If the user corrects you on any topic, accept the correction immediately and never argue.\n"
             "Be direct, conversational, friendly, and complete in 1 to 2 spoken sentences. Never use markdown, bullet points, or asterisks."
         ),
         description="Conversational system prompt template with runtime token expansion"

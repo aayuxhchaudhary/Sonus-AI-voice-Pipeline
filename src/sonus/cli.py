@@ -41,7 +41,10 @@ def render_banner(config: SonusConfig, active_device_name: str = "") -> None:
     banner_text.append("• TTS Synthesizer: ", style="bold cyan")
     banner_text.append(f"Kokoro-82M ONNX [{config.tts.voice} @ 24kHz]\n")
     banner_text.append("• User Profile:    ", style="bold cyan")
-    banner_text.append(f"{config.llm.user_name}\n", style="bold green")
+    if config.llm.user_name:
+        banner_text.append(f"{config.llm.user_name}\n", style="bold green")
+    else:
+        banner_text.append("General (Pass --user-name to personalize)\n", style="dim green")
     banner_text.append("• Clock Grounding: ", style="bold cyan")
     banner_text.append(f"{datetime.now().strftime('%A, %B %d, %Y (%I:%M %p)')}\n", style="bold yellow")
     if config.debug_audio_dir:
@@ -205,7 +208,7 @@ def main() -> None:
         "--user-name",
         type=str,
         default=None,
-        help="User persona name for conversational context and identity grounding (default: Aayush)",
+        help="User persona name for conversational context and identity grounding (optional, e.g. --user-name Alex)",
     )
     parser.add_argument(
         "--stt-model",
@@ -253,6 +256,20 @@ def main() -> None:
 
     if args.debug_audio_dir:
         config.debug_audio_dir = str(Path(args.debug_audio_dir).expanduser())
+
+    # Verify model binaries exist on disk; download automatically if missing on first launch
+    vad_missing = not Path(config.vad.model_path).exists()
+    tts_missing = not Path(config.tts.model_path).exists()
+    voices_missing = not Path(config.tts.voices_path).exists()
+    if vad_missing or tts_missing or voices_missing:
+        console.print("[bold yellow]⚡ Missing required model assets. Launching asset downloader...[/bold yellow]")
+        try:
+            from scripts.download_models import ensure_models
+            ensure_models()
+        except Exception as e:
+            console.print(f"[bold red]❌ Failed to auto-download models: {e}[/bold red]")
+            console.print("[yellow]Run manually: uv run python scripts/download_models.py[/yellow]")
+            return
 
     if args.test_mic:
         run_mic_test(config)
